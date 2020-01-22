@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-task-pod
+spec:
+  containers:
+  - name: cassandra
+    image: cassandra:3.11
+    imagePullPolicy: Always
+    resources:
+      requests: &requests
+        cpu: 500m
+        memory: 1Gi
+      limits: *requests
+    securityContext:
+      capabilities:
+        add:
+        - IPC_LOCK
+      procMount: Default
+      readOnlyRootFilesystem: true
+    volumeMounts:
+    - mountPath: /var/lib/cassandra
+      name: data
+      readOnly: true
+  securityContext:
+    fsGroup: 1
+    runAsNonRoot: true
+    runAsUser: 999
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: data-pvc-name

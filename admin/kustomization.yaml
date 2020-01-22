@@ -1,0 +1,9 @@
+resources:
+  - admin-pod.yaml
+
+commonLabels:
+  app: cassandracluster
+  cassandracluster: cassandra-e2e
+
+patches:
+- custom-admin-pod.yaml

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-task-pod
+spec:
+  containers:
+  - name: cassandra
+    command:
+    - nodetool
+    - listsnapshots
+    # env:
+    # - name: JOLOKIA_USER
+    #   valueFrom:
+    #     secretKeyRef:
+    #       key: username
+    #       name: jolokia-auth
+    # - name: JOLOKIA_PASSWORD
+    #   valueFrom:
+    #     secretKeyRef:
+    #       key: password
+    #       name: jolokia-auth
+    image: cassandra:3.11
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: data-cassandra-e2e-dc1-rack1-0
