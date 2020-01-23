@@ -3,29 +3,96 @@ kind: Pod
 metadata:
   name: admin-task-pod
 spec:
-  containers:
-  - name: cassandra
-    image: cassandra:3.11
-    imagePullPolicy: Always
+  initContainers:
+  - name: init-config
+    command:
+    - sh
+    - -c
+    - cp -vr /etc/cassandra/* /bootstrap
+    image: cassandra:latest
     resources:
       requests: &requests
         cpu: 500m
         memory: 1Gi
       limits: *requests
+    volumeMounts: &volumeMounts
+    - name: data
+      mountPath: /var/lib/cassandra
+      readOnly: true
+    - name: extra-lib
+      mountPath: /extra-lib
+    - name: tmp
+      mountPath: /tmp
+    - name: bootstrap
+      mountPath: /bootstrap
+  - name: bootstrap
+    image: orangeopensource/cassandra-bootstrap:0.1.3
+    resources:
+      requests: *requests
+      limits: *requests
+    env: &env
+    - name: CASSANDRA_MAX_HEAP
+      value: 256M
+    - name: CASSANDRA_SEEDS
+      value: cassandra-e2e-dc1-rack1-0.cassandra-e2e.cassandra-e2e
+    - name: CASSANDRA_CLUSTER_NAME
+      value: cassandra-e2e
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: status.podIP
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.name
+    - name: CASSANDRA_GC_STDOUT
+      value: "false"
+    - name: CASSANDRA_NUM_TOKENS
+      value: "256"
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: spec.nodeName
+    - name: CASSANDRA_DC
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.labels['cassandraclusters.db.orange.com.dc']
+    - name: CASSANDRA_RACK
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.labels['cassandraclusters.db.orange.com.rack']
+    volumeMounts: *volumeMounts
+  securityContext: &nonRoot
+    fsGroup: 1
+    runAsNonRoot: true
+    runAsUser: 999
+  volumes:
+  - emptyDir: {}
+    name: bootstrap
+  - emptyDir: {}
+    name: extra-lib
+  - emptyDir: {}
+    name: tmp
+  containers:
+  - name: cassandra
+    image: cassandra:3.11
+    resources:
+      requests: *requests
+      limits: *requests
+    env: *env
     securityContext:
       capabilities:
         add:
         - IPC_LOCK
       procMount: Default
       readOnlyRootFilesystem: true
-    volumeMounts:
-    - mountPath: /var/lib/cassandra
-      name: data
-      readOnly: true
-  securityContext:
-    fsGroup: 1
-    runAsNonRoot: true
-    runAsUser: 999
+    volumeMounts: *volumeMounts
+    securityContext: *nonRoot
   volumes:
   - name: data
     persistentVolumeClaim:
