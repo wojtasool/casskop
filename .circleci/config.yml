@@ -257,7 +257,6 @@ orbs:
               export GOSS_PATH=/usr/local/bin/goss
               export GOSS_FILES_STRATEGY=cp
               make dgoss-bootstrap
-
       # Reporting step, will run sonar report from scan.
       report:
         <<: *params_operator
